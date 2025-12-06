@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>প্রোফাইল ফটো ফ্রেম জেনারেটর</title>
+    <!-- Tailwind CSS for Styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: #f3f4f6;
+            touch-action: manipulation; /* Improves touch on mobile */
+        }
+        canvas {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwgAADsIBFShKgAAAABp0RVh0U29mdHdhcmUAUGFpbnQuTkVUIHYzLjUuMTAw9HKhAAAAFElEQVQ4T2NTgIP/OPzhP4ZBNCEAAGNiExO9S2mFAAAAAElFTkSuQmCC'); /* Checkered background for transparency */
+            cursor: move; /* Indicates draggability */
+            max-width: 100%;
+            height: auto;
+        }
+        .slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #d1d5db;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 5px;
+        }
+        .slider:hover {
+            opacity: 1;
+        }
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #2563eb;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #2563eb;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center py-10 px-4">
+
+    <div class="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full">
+        <!-- Header -->
+        <div class="text-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">ফটো ফ্রেম এডিটর</h1>
+            <p class="text-gray-500 text-sm">আপনার ছবি আপলোড করুন এবং ফ্রেম সেট করুন</p>
+        </div>
+
+        <!-- Canvas Area -->
+        <div class="relative flex justify-center mb-6 border-4 border-dashed border-gray-200 rounded-lg p-2 bg-gray-50">
+            <!-- Canvas size is set to 1080x1080 for high quality output -->
+            <canvas id="editorCanvas" width="1080" height="1080" class="rounded-md shadow-lg"></canvas>
+            
+            <!-- Loading Indicator -->
+            <div id="loadingMsg" class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80 hidden">
+                <span class="text-blue-600 font-semibold">প্রসেসিং হচ্ছে...</span>
+            </div>
+        </div>
+
+         <!-- Zoom Control -->
+            <div>
+                <div class="flex justify-between mb-1">
+                    <label class="text-sm font-medium text-gray-700">জুম (Zoom)</label>
+                    <span class="text-sm text-gray-500 text-xs">(ড্র্যাগ করে ছবি সরাতে পারবেন)</span>
+                </div>
+                <input type="range" id="zoomSlider" min="0.1" max="3" step="0.05" value="1" class="slider" disabled>
+            </div>
+
+        <!-- Frame Selection Area (NEW) -->
+        <div class="mb-6">
+            <h3 class="text-sm font-semibold text-gray-700 mb-2">ফ্রেম পছন্দ করুন:</h3>
+            <div class="flex space-x-3 overflow-x-auto pb-2" id="frameGallery">
+                <!-- Frame thumbnails will be generated here by JS -->
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="space-y-4">
+            
+            <!-- Upload Button -->
+            <div class="relative">
+                <label for="uploadInput" class="flex items-center justify-center w-full px-4 py-3 bg-blue-50 text-blue-700 rounded-lg cursor-pointer hover:bg-blue-100 transition border border-blue-200 font-semibold">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    ছবি সিলেক্ট করুন
+                </label>
+                <input type="file" id="uploadInput" accept="image/*" class="hidden">
+            </div>
+
+
+            <!-- Download Button -->
+            <button id="downloadBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow transition flex items-center justify-center opacity-50 cursor-not-allowed" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                ডাউনলোড করুন
+            </button>
+        </div>
+        
+        <div class=" mt-6  flex place-content-center text-nowrap text-gray-400">
+          Developed by <a href="https://www.facebook.com/rasib.com.bd" target="_blank"><img src="rasib.svg" height="30%" width="30%"></a>
+        </div>
+    </div>
+
+    <script>
+        // --- Variables ---
+        const canvas = document.getElementById('editorCanvas');
+        const ctx = canvas.getContext('2d');
+        const uploadInput = document.getElementById('uploadInput');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const loadingMsg = document.getElementById('loadingMsg');
+        const frameGallery = document.getElementById('frameGallery');
+
+        // State variables
+        let userImg = new Image();
+        let frameImg = new Image();
+        let imgLoaded = false;
+        
+        // Frame Configuration
+        // আপনার ফোল্ডারে এই নামে ছবিগুলো রাখুন
+        const frameList = ['frame1.png', 'frame2.png']; 
+        let currentFrameIndex = 0;
+
+        // Transform variables
+        let scale = 1;
+        let panning = false;
+        let pointX = 0;
+        let pointY = 0;
+        let startX = 0;
+        let startY = 0;
+
+        // --- 1. Frame Handling Logic ---
+        
+
+        // ফ্রেম লোড করার ফাংশন
+        function loadFrame(index) {
+            loadingMsg.classList.remove('hidden');
+            const tempImg = new Image();
+            const src = frameList[index];
+
+            tempImg.onload = function() {
+                frameImg = tempImg;
+                updateGalleryUI(index);
+                draw();
+                loadingMsg.classList.add('hidden');
+            };
+
+            tempImg.onerror = function() {
+                // ছবি না পেলে ডেমো জেনারেট করবে
+                console.warn(`${src} not found, generating demo.`);
+                const colors = ['#ef4444', '#10b981', '#3b82f6']; // Red, Green, Blue
+                const texts = ['বিজয় দিবস', 'স্বাধীনতা দিবস', 'ঈদ মোবারক'];
+                
+                tempImg.src = createDemoFrame(colors[index % 3], texts[index % 3]);
+                // Remove onerror to prevent infinite loop if svg fails (unlikely)
+                tempImg.onerror = null; 
+            };
+
+            tempImg.src = src;
+        }
+
+        // গ্যালারি বাটন তৈরি করা
+        function initGallery() {
+            frameGallery.innerHTML = '';
+            frameList.forEach((src, index) => {
+                const btn = document.createElement('div');
+                btn.className = `flex-shrink-0 w-16 h-16 rounded-md border-2 cursor-pointer overflow-hidden relative ${index === 0 ? 'border-blue-600 ring-2 ring-blue-300' : 'border-gray-300'}`;
+                btn.onclick = () => loadFrame(index);
+                
+                // Thumbnail Text/Icon
+                btn.innerHTML = `<div class="w-full h-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">Frame ${index + 1}</div>`;
+                
+                // Try to load thumbnail preview if image exists
+                const thumbImg = new Image();
+                thumbImg.onload = () => {
+                    btn.innerHTML = ''; // Clear text
+                    btn.appendChild(thumbImg);
+                    thumbImg.className = "w-full h-full object-cover";
+                };
+                thumbImg.src = src;
+
+                btn.id = `frame-btn-${index}`;
+                frameGallery.appendChild(btn);
+            });
+            // Load first frame by default
+            loadFrame(0);
+        }
+
+        function updateGalleryUI(selectedIndex) {
+            frameList.forEach((_, index) => {
+                const btn = document.getElementById(`frame-btn-${index}`);
+                if (index === selectedIndex) {
+                    btn.className = "flex-shrink-0 w-16 h-16 rounded-md border-2 border-blue-600 ring-2 ring-blue-300 cursor-pointer overflow-hidden relative transform scale-105 transition";
+                } else {
+                    btn.className = "flex-shrink-0 w-16 h-16 rounded-md border-2 border-gray-300 cursor-pointer overflow-hidden relative opacity-70 hover:opacity-100 transition";
+                }
+            });
+        }
+
+        // Initialize App
+        initGallery();
+
+        // --- 2. Handle User Upload ---
+        uploadInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                userImg = new Image();
+                userImg.onload = function() {
+                    // Reset position and scale for new image
+                    imgLoaded = true;
+                    scale = 1;
+                    pointX = (canvas.width - userImg.width) / 2;
+                    pointY = (canvas.height - userImg.height) / 2;
+                    
+                    // Enable controls
+                    zoomSlider.disabled = false;
+                    zoomSlider.value = 1;
+                    downloadBtn.disabled = false;
+                    downloadBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    
+                    draw();
+                }
+                userImg.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // --- 3. Draw Function (The Core Logic) ---
+        function draw() {
+            // 1. Clear Canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 2. Background color (optional, white behind everything)
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0,0, canvas.width, canvas.height);
+
+            if (imgLoaded) {
+                // 3. Draw User Image with transformations
+                ctx.save();
+                // Move to current position
+                ctx.translate(pointX, pointY);
+                // Apply Scale from center of image roughly (simplified)
+                ctx.scale(scale, scale);
+                
+                ctx.drawImage(userImg, 0, 0);
+                ctx.restore();
+            } else {
+                // Placeholder text if no image
+                ctx.fillStyle = "#ccc";
+                ctx.font = "60px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("এখানে ছবি দেখা যাবে", canvas.width/2, canvas.height/2);
+            }
+
+            // 4. Draw Frame Overlay (Always on top)
+            ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+        }
+
+        // --- 4. Controls: Zoom ---
+        zoomSlider.addEventListener('input', function(e) {
+            // Adjust scale based on slider. 
+            // We want to zoom towards the center of the current view, 
+            // but for simplicity, we just scale the image object.
+            
+            const newScale = parseFloat(this.value);
+            
+            // Optional: Adjust position to try to keep center (simple implementation)
+            const oldWidth = userImg.width * scale;
+            const oldHeight = userImg.height * scale;
+            const newWidth = userImg.width * newScale;
+            const newHeight = userImg.height * newScale;
+            
+            pointX -= (newWidth - oldWidth) / 2;
+            pointY -= (newHeight - oldHeight) / 2;
+            
+            scale = newScale;
+            draw();
+        });
+
+        // --- 5. Controls: Drag/Pan (Mouse & Touch) ---
+        
+        // Helper to get coordinates
+        function getCoords(e) {
+            const rect = canvas.getBoundingClientRect();
+            // Scale factor between CSS pixels and Canvas pixels
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function startDrag(e) {
+            if (!imgLoaded) return;
+            e.preventDefault(); // Prevent scrolling on mobile
+            panning = true;
+            const coords = getCoords(e);
+            startX = coords.x - pointX;
+            startY = coords.y - pointY;
+        }
+
+        function doDrag(e) {
+            if (!panning || !imgLoaded) return;
+            e.preventDefault();
+            const coords = getCoords(e);
+            pointX = coords.x - startX;
+            pointY = coords.y - startY;
+            draw();
+        }
+
+        function endDrag() {
+            panning = false;
+        }
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', doDrag);
+        window.addEventListener('mouseup', endDrag);
+
+        // Touch Events (Mobile)
+        canvas.addEventListener('touchstart', startDrag, {passive: false});
+        window.addEventListener('touchmove', doDrag, {passive: false});
+        window.addEventListener('touchend', endDrag);
+
+
+        // --- 6. Download Feature ---
+        downloadBtn.addEventListener('click', function() {
+            // Create a temporary link
+            const link = document.createElement('a');
+            link.download = 'my-framed-photo.png';
+            link.href = canvas.toDataURL('image/png', 1.0); // High quality
+            link.click();
+        });
+
+    </script>
+</body>
+</html>
