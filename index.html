@@ -137,7 +137,7 @@
         
         // Frame Configuration
         // আপনার ফোল্ডারে এই নামে ছবিগুলো রাখুন
-        const frameList = ['frame1.png', 'frame2.png', 'frame3.png', 'frame4.png', 'frame5.png']; 
+        const frameList = ['frame1.png', 'frame2.png', 'frame3.png', 'frame4.png', 'frame5.png', 'frame6.png', 'frame7.png']; 
         let currentFrameIndex = 0;
 
         // Transform variables
@@ -168,7 +168,7 @@
                 // ছবি না পেলে ডেমো জেনারেট করবে
                 console.warn(`${src} not found, generating demo.`);
                 const colors = ['#ef4444', '#10b981', '#3b82f6']; // Red, Green, Blue
-                const texts = ['বিজয় দিবস', 'স্বাধীনতা দিবস', 'ঈদ মোবারক'];
+                const texts = ['Demo1', 'Demo2', 'Demo3'];
                 
                 tempImg.src = createDemoFrame(colors[index % 3], texts[index % 3]);
                 // Remove onerror to prevent infinite loop if svg fails (unlikely)
@@ -367,4 +367,5 @@
     </script>
 </body>
 </html>
+
 
